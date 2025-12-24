@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expense Tracker with Wallet</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+:root{
+  --primary:#6366f1;
+  --secondary:#22c55e;
+  --warning:#f97316;
+  --danger:#ef4444;
+  --bg:#f4f6fb;
+  --card:#ffffff;
+  --text:#1f2937;
+  --border:#e5e7eb;
+}
+.dark{
+  --bg:#0f172a;
+  --card:#020617;
+  --text:#e5e7eb;
+  --border:#1e293b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:Inter,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  display:flex;
+  justify-content:center;
+  padding:30px;
+}
+.container{
+  width:100%;
+  max-width:900px;
+  background:var(--card);
+  border-radius:16px;
+  padding:28px;
+  box-shadow:0 20px 40px rgba(0,0,0,.15);
+}
+h1{text-align:center;color:var(--primary);margin-bottom:20px}
+
+/* LOCK */
+#lockScreen{
+  position:fixed;inset:0;
+  background:#020617;
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999;color:white;
+}
+#lockBox{
+  width:320px;background:#020617;
+  padding:30px;border-radius:16px;text-align:center;
+}
+#lockBox input{
+  width:100%;padding:14px;margin:15px 0;
+  font-size:1.4rem;text-align:center;
+  border-radius:10px;border:none;
+}
+#lockBox button{
+  width:100%;padding:14px;border:none;border-radius:12px;
+  background:var(--primary);color:white;font-weight:600;
+}
+
+/* TOP */
+.topbar{display:flex;justify-content:space-between;margin-bottom:10px}
+.topbar button{
+  padding:8px 14px;border:none;border-radius:20px;
+  font-weight:600;cursor:pointer;
+}
+
+/* WALLET */
+.wallet{
+  background:linear-gradient(135deg,#dcfce7,#ecfeff);
+  padding:18px;border-radius:14px;
+  margin-bottom:15px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.wallet strong{font-size:1.2rem;color:var(--secondary)}
+.wallet button{
+  padding:10px 14px;
+  background:var(--secondary);
+  color:rgb(18, 7, 7);border:none;border-radius:10px;
+  cursor:pointer;font-weight:600;
+}
+
+/* FORM */
+.form{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:12px;margin-bottom:15px;
+}
+input,select{
+  padding:14px;border-radius:10px;
+  border:1px solid var(--border);
+  background:transparent;color:var(--text);
+}
+.form button{
+  background:var(--primary);
+  color:white;border:none;border-radius:12px;
+  font-weight:600;cursor:pointer;
+}
+
+/* CONTROLS */
+.controls{
+  display:flex;gap:10px;margin-bottom:15px;
+}
+.controls button{
+  flex:1;padding:14px;border:none;border-radius:12px;
+  font-weight:600;cursor:pointer;
+}
+#editBtn{background:#0ea5e9;color:white}
+#resetBtn{background:var(--warning);color:white}
+#logoutBtn{background:var(--danger);color:white}
+
+/* SUMMARY */
+.summary{
+  background:linear-gradient(135deg,#eef2ff,#ecfeff);
+  padding:18px;border-radius:14px;
+  font-weight:600;margin-bottom:15px;
+  text-align:right;
+}
+.summary span{color:var(--secondary)}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse}
+th,td{padding:14px;border-bottom:1px solid var(--border)}
+th{text-align:left;color:#94a3b8}
+tbody tr:hover{background:#f1f5f9;cursor:pointer}
+
+/* EXPORT */
+#exportPdf{
+  width:100%;padding:16px;margin-top:18px;
+  background:var(--secondary);border:none;border-radius:14px;
+  color:white;font-weight:600;cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOCK -->
+<div id="lockScreen">
+  <div id="lockBox">
+    <h2 id="lockTitle">Enter PIN</h2>
+    <input id="pinInput" type="password" maxlength="4" placeholder="••••">
+    <button id="pinBtn">Unlock</button>
+    <p id="pinMsg" style="color:#f87171"></p>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="topbar">
+    <button id="themeBtn">🌙 Dark</button>
+    <button id="logoutBtn">Logout</button>
+  </div>
+
+  <h1>DAILY ROOM EXPENSES DATA</h1>
+
+  <!-- WALLET -->
+  <div class="wallet">
+    <div>Wallet Balance: <strong id="walletBalance">₹0</strong></div>
+    <button id="addMoneyBtn">+ Add Money</button>
+  </div>
+
+  <div class="form">
+    <input id="desc" placeholder="Description">
+    <input id="amount" type="number" placeholder="Amount ₹">
+    <input id="date" type="date">
+    <select id="category">
+      <option>Food</option><option>Transport</option>
+      <option>Shopping</option><option>Health</option>
+      <option>Other</option>
+    </select>
+    <button id="addBtn">Add Expense</button>
+  </div>
+
+  <div class="controls">
+    <button id="editBtn">Enable Edit</button>
+    <button id="resetBtn">Monthly Reset</button>
+  </div>
+
+  <div class="summary">
+    Total Expenses: <span id="total">₹0</span>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th></tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+
+  <button id="exportPdf">Export PDF</button>
+</div>
+
+<script>
+/* ===== PIN ===== */
+let savedPin=localStorage.getItem("APP_PIN");
+if(!savedPin){
+  lockTitle.textContent="Set 4-Digit PIN";
+  pinBtn.textContent="Set PIN";
+}
+pinBtn.onclick=()=>{
+  if(!/^\d{4}$/.test(pinInput.value))return pinMsg.textContent="Enter 4 digits";
+  if(!savedPin){
+    localStorage.setItem("APP_PIN",pinInput.value);
+    savedPin=pinInput.value;
+    lockScreen.style.display="none";
+  }else if(pinInput.value===savedPin){
+    lockScreen.style.display="none";
+  }else pinMsg.textContent="Wrong PIN";
+};
+
+/* ===== THEME ===== */
+if(localStorage.getItem("theme")==="dark"){
+  document.body.classList.add("dark");
+  themeBtn.textContent="☀ Light";
+}
+themeBtn.onclick=()=>{
+  document.body.classList.toggle("dark");
+  localStorage.setItem("theme",document.body.classList.contains("dark")?"dark":"light");
+  themeBtn.textContent=document.body.classList.contains("dark")?"☀ Light":"🌙 Dark";
+};
+
+/* ===== DATA ===== */
+const EDIT_PASSWORD="admin123";
+let editMode=false;
+let editIndex=null;
+
+let wallet=Number(localStorage.getItem("wallet"))||0;
+let expenses=JSON.parse(localStorage.getItem("expenses"))||[];
+
+function save(){
+  localStorage.setItem("expenses",JSON.stringify(expenses));
+  localStorage.setItem("wallet",wallet);
+}
+
+/* ===== RENDER ===== */
+function render(){
+  walletBalance.textContent="₹"+wallet.toFixed(2);
+  tableBody.innerHTML="";
+  let sum=0;
+  expenses.forEach((e,i)=>{
+    sum+=+e.amount;
+    tableBody.innerHTML+=`
+      <tr onclick="selectRow(${i})">
+        <td>${e.date}</td>
+        <td>${e.desc}</td>
+        <td>${e.category}</td>
+        <td>₹${e.amount}</td>
+      </tr>`;
+  });
+  total.textContent="₹"+sum.toFixed(2);
+}
+render();
+
+/* ===== ADD MONEY ===== */
+addMoneyBtn.onclick=()=>{
+  if(!editMode)return alert("Enable Edit Mode");
+  const amt=Number(prompt("Enter amount to add:"));
+  if(amt>0){
+    wallet+=amt;
+    save();render();
+  }
+};
+
+/* ===== EDIT MODE ===== */
+editBtn.onclick=()=>{
+  const p=prompt("Enter Edit Password:");
+  if(p===EDIT_PASSWORD){
+    editMode=true;
+    alert("Edit Mode Enabled");
+  }else alert("Wrong Password");
+};
+
+/* ===== SELECT ===== */
+window.selectRow=(i)=>{
+  if(!editMode)return;
+  editIndex=i;
+  const e=expenses[i];
+  desc.value=e.desc;
+  amount.value=e.amount;
+  date.value=e.date;
+  category.value=e.category;
+  addBtn.textContent="Update Expense";
+};
+
+/* ===== ADD / UPDATE EXPENSE ===== */
+addBtn.onclick=()=>{
+  if(!editMode)return alert("Enable Edit Mode");
+  if(!desc.value||!amount.value||!date.value)return;
+
+  let amt=Number(amount.value);
+
+  if(editIndex===null){
+    if(wallet<amt)return alert("Insufficient Wallet Balance");
+    wallet-=amt;
+    expenses.push({desc:desc.value,amount:amt,date:date.value,category:category.value});
+  }else{
+    let diff=amt-expenses[editIndex].amount;
+    if(wallet<diff)return alert("Insufficient Wallet Balance");
+    wallet-=diff;
+    expenses[editIndex]={desc:desc.value,amount:amt,date:date.value,category:category.value};
+    editIndex=null;
+    addBtn.textContent="Add Expense";
+  }
+
+  save();render();
+  desc.value=amount.value=date.value="";
+};
+
+/* ===== RESET ===== */
+resetBtn.onclick=()=>{
+  if(confirm("Reset expenses?")){
+    expenses=[];
+    save();render();
+  }
+};
+
+/* ===== LOGOUT ===== */
+logoutBtn.onclick=()=>{
+  editMode=false;
+  editIndex=null;
+  lockScreen.style.display="flex";
+};
+
+/* ===== PDF ===== */
+exportPdf.onclick=()=>{
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF();
+  doc.text("Expense Report",14,20);
+  doc.text("Wallet Balance: ₹"+wallet.toFixed(2),14,30);
+  let y=40;
+  expenses.forEach(e=>{
+    doc.text(`${e.date} | ${e.desc} | ${e.category} | ₹${e.amount}`,14,y);
+    y+=8;
+  });
+  doc.text(`Total Expenses: ${total.textContent}`,14,y+10);
+  doc.save("expenses.pdf");
+};
+</script>
+
+</body>
+</html>
